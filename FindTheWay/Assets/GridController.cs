@@ -6,50 +6,67 @@ using UnityEngine;
 
 public class GridController : MonoBehaviour
 {
-    public Sprite Walkable, Unwalkable;
+    public Vector2 StartPos, EndPos;
+    public Sprite WalkableTile, UnwalkableTile, PathTile;
     public bool DiagonalMovement;
     private Vector2 mousePosition;
     public Vector2 GridSize;
     public Node Tile;
-    public List<Node> path;
+    public List<Node> Path;
     public Node[,] Grid;
+    public PathFinding MyPathFinding;
 
-    public float NodeRadius;
-    private float nodeDiameter;
+    public float NodeDiameter;
 
     private int gridSizeX;
     private int gridSizeY;
 
+    void Awake()
+    {
+        MyPathFinding = GetComponent<PathFinding>();
+    }
+
     void Start()
     {
-        nodeDiameter = NodeRadius * 2;
+        gridSizeX = Mathf.RoundToInt(GridSize.x / NodeDiameter);
+        gridSizeY = Mathf.RoundToInt(GridSize.y / NodeDiameter);
 
-        gridSizeX = Mathf.RoundToInt(GridSize.x / nodeDiameter);
-        gridSizeY = Mathf.RoundToInt(GridSize.y / nodeDiameter);
-
-        //GenerateTiles();
         GenerateGrid();
+        MyPathFinding.FindPath(StartPos, EndPos);
     }
 
     void Update()
     {
         mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        
+
         if (Input.GetKeyDown(KeyCode.Mouse0))
+            SwitchTile();
+
+        else if (Input.GetKeyDown(KeyCode.Mouse2))
         {
-            SwitchTile(false, Unwalkable);
+            Node n = GetNodeFromWorldPosition(mousePosition);
+            EndPos = n.transform.position;
+
+            MyPathFinding.FindPath(StartPos, EndPos);
         }
+
         else if (Input.GetKeyDown(KeyCode.Mouse1))
         {
-            SwitchTile(true, Walkable);
+            Node n = GetNodeFromWorldPosition(mousePosition);
+            StartPos = n.transform.position;
+
+            MyPathFinding.FindPath(StartPos, EndPos);
         }
     }
 
-    void SwitchTile(bool b, Sprite s)
+    void SwitchTile()
     {
         var node = GetNodeFromWorldPosition(mousePosition);
-        node.CanWalk = b;
-        node.GetComponent<SpriteRenderer>().sprite = s;
+        node.CanWalk = !node.CanWalk;
+
+        Path = new List<Node>();
+
+        MyPathFinding.FindPath(StartPos, EndPos);
     }
 
     //void GenerateTiles()
@@ -59,7 +76,7 @@ public class GridController : MonoBehaviour
     //    for (int x = 0; x < GridSize.x; x++)
     //        for (int y = 0; y < GridSize.y; y++)
     //        {
-    //            var o = Instantiate(Tile, new Vector3(x * nodeDiameter + NodeRadius, y * nodeDiameter + NodeRadius, 0), Quaternion.identity);
+    //            var o = Instantiate(Tile, new Vector3(x * NodeDiameter + NodeRadius, y * NodeDiameter + NodeRadius, 0), Quaternion.identity);
     //            Tiles[x, y] = o;
     //        }
     //}
@@ -71,7 +88,7 @@ public class GridController : MonoBehaviour
         for (int x = 0; x < gridSizeX; x++)
             for (int y = 0; y < gridSizeY; y++)
             {
-                Vector2 worldPoint = new Vector2(x * nodeDiameter, y * nodeDiameter);
+                Vector2 worldPoint = new Vector2(x * NodeDiameter, y * NodeDiameter);
 
                 var node = Instantiate(Tile, worldPoint, Quaternion.identity);
                 node.SetProp(true, worldPoint, x, y);
@@ -82,9 +99,11 @@ public class GridController : MonoBehaviour
 
     public Node GetNodeFromWorldPosition(Vector2 worldPosition)
     {
-        int x = Mathf.RoundToInt(worldPosition.x / nodeDiameter);
-        int y = Mathf.RoundToInt(worldPosition.y / nodeDiameter);
+        int x = Mathf.RoundToInt(worldPosition.x / NodeDiameter);
+        int y = Mathf.RoundToInt(worldPosition.y / NodeDiameter);
 
+
+        
         return Grid[x, y];
     }
     public List<Node> GetNeighboursInSquare(Node n)
@@ -94,7 +113,7 @@ public class GridController : MonoBehaviour
         for (int x = -1; x < 2; x++)
             for (int y = -1; y < 2; y++)
             {
-                if (x == 0 && y == 0 )
+                if (x == 0 && y == 0)
                     continue;
 
                 int checkX = n.gridX + x;
@@ -136,20 +155,31 @@ public class GridController : MonoBehaviour
         return neighbours;
     }
 
-    private void OnDrawGizmos()
-    {         
-        if (Grid != null)
+    public void RefreshGrid()
+    {
+        foreach (var node in Grid)
         {
-            foreach (Node node in Grid)
-            {
-                Gizmos.color = (node.CanWalk) ? Color.green : Color.red;
-                if (path != null)
-                {
-                    if (path.Contains(node))
-                        Gizmos.color = Color.black;
-                }
-                Gizmos.DrawCube(node.WorldPosition, Vector3.one * (nodeDiameter - 0.1f));
-            }
+            node.GetComponent<SpriteRenderer>().sprite = node.CanWalk ? WalkableTile : UnwalkableTile;
+
+            if (Path.Contains(node))
+                node.GetComponent<SpriteRenderer>().sprite = PathTile;
         }
     }
+
+    //private void OnDrawGizmos()
+    //{         
+    //    if (Grid != null)
+    //    {
+    //        foreach (Node node in Grid)
+    //        {
+    //            Gizmos.color = (node.CanWalk) ? Color.green : Color.red;
+    //            if (Path != null)
+    //            {
+    //                if (Path.Contains(node))
+    //                    Gizmos.color = Color.black;
+    //            }
+    //            Gizmos.DrawCube(node.WorldPosition, Vector3.one * (NodeDiameter - 0.1f));
+    //        }
+    //    }
+    //}
 }

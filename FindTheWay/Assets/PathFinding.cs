@@ -11,15 +11,16 @@ public class PathFinding : MonoBehaviour
         myGrid = GetComponent<GridController>();
     }
 
-    private void Update()
-    {
-        FindPath(new Vector2(0, 0), new Vector2(9, 9)); // TODO: 
-    }
-
-    private void FindPath(Vector2 startPos, Vector2 endPos)
+    public void FindPath(Vector2 startPos, Vector2 endPos)
     {
         Node startNode = myGrid.GetNodeFromWorldPosition(startPos);
         Node endNode = myGrid.GetNodeFromWorldPosition(endPos);
+
+        if (!startNode.CanWalk || !endNode.CanWalk)
+        {        
+            myGrid.RefreshGrid();
+            return;
+        }
 
         List<Node> openSet = new List<Node>();
         List<Node> closeSet = new List<Node>();
@@ -62,6 +63,8 @@ public class PathFinding : MonoBehaviour
                 }
             }
         }
+
+        myGrid.RefreshGrid();
     }
 
     void RetracePath(Node startNode, Node endNode)
@@ -77,7 +80,7 @@ public class PathFinding : MonoBehaviour
         }
         path.Reverse();
         path.Add(startNode);
-        myGrid.path = path;
+        myGrid.Path = path;
     }
 
 
