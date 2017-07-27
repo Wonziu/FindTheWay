@@ -6,9 +6,12 @@ using UnityEngine;
 
 public class GridController : MonoBehaviour
 {
+    public Sprite Walkable, Unwalkable;
+    public bool DiagonalMovement;
+    private Vector2 mousePosition;
     public Vector2 GridSize;
     public Node Tile;
-    
+    public List<Node> path;
     public Node[,] Grid;
 
     public float NodeRadius;
@@ -17,8 +20,6 @@ public class GridController : MonoBehaviour
     private int gridSizeX;
     private int gridSizeY;
 
-
-    // Use this for initialization
     void Start()
     {
         nodeDiameter = NodeRadius * 2;
@@ -32,20 +33,23 @@ public class GridController : MonoBehaviour
 
     void Update()
     {
-        var mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         
         if (Input.GetKeyDown(KeyCode.Mouse0))
         {
-            var d = GetNodeFromWorldPosition(mousePosition);
-            d.CanWalk = false;
-            d.gameObject.SetActive(false);
+            SwitchTile(false, Unwalkable);
         }
         else if (Input.GetKeyDown(KeyCode.Mouse1))
         {
-            var d = GetNodeFromWorldPosition(mousePosition);
-            d.CanWalk = true;
-            d.gameObject.SetActive(true);
+            SwitchTile(true, Walkable);
         }
+    }
+
+    void SwitchTile(bool b, Sprite s)
+    {
+        var node = GetNodeFromWorldPosition(mousePosition);
+        node.CanWalk = b;
+        node.GetComponent<SpriteRenderer>().sprite = s;
     }
 
     //void GenerateTiles()
@@ -70,9 +74,7 @@ public class GridController : MonoBehaviour
                 Vector2 worldPoint = new Vector2(x * nodeDiameter, y * nodeDiameter);
 
                 var node = Instantiate(Tile, worldPoint, Quaternion.identity);
-
-                node.CanWalk = true;
-                node.WorldPosition = worldPoint;
+                node.SetProp(true, worldPoint, x, y);
 
                 Grid[x, y] = node;
             }
@@ -85,6 +87,54 @@ public class GridController : MonoBehaviour
 
         return Grid[x, y];
     }
+    public List<Node> GetNeighboursInSquare(Node n)
+    {
+        List<Node> neighbours = new List<Node>();
+
+        for (int x = -1; x < 2; x++)
+            for (int y = -1; y < 2; y++)
+            {
+                if (x == 0 && y == 0 )
+                    continue;
+
+                int checkX = n.gridX + x;
+                int checkY = n.gridY + y;
+
+                if (checkX >= 0 && checkX < gridSizeX && checkY >= 0 && checkY < gridSizeY)
+                    neighbours.Add(Grid[checkX, checkY]);
+            }
+
+        return neighbours;
+    }
+
+    public List<Node> GetNeighbours(Node n)
+    {
+        List<Node> neighbours = new List<Node>();
+
+        for (int x = -1; x < 2; x++)
+        {
+            if (x == 0)
+                continue;
+
+            int checkX = n.gridX + x;
+
+            if (checkX >= 0 && checkX < gridSizeX)
+                neighbours.Add(Grid[checkX, n.gridY]);
+        }
+
+        for (int y = -1; y < 2; y++)
+        {
+            if (y == 0)
+                continue;
+
+            int checkY = n.gridY + y;
+
+            if (checkY >= 0 && checkY < gridSizeY)
+                neighbours.Add(Grid[n.gridX, checkY]);
+        }
+
+        return neighbours;
+    }
 
     private void OnDrawGizmos()
     {         
@@ -93,7 +143,12 @@ public class GridController : MonoBehaviour
             foreach (Node node in Grid)
             {
                 Gizmos.color = (node.CanWalk) ? Color.green : Color.red;
-                Gizmos.DrawCube(node.WorldPosition, Vector3.one * (nodeDiameter - 0.3f));
+                if (path != null)
+                {
+                    if (path.Contains(node))
+                        Gizmos.color = Color.black;
+                }
+                Gizmos.DrawCube(node.WorldPosition, Vector3.one * (nodeDiameter - 0.1f));
             }
         }
     }
