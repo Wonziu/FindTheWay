@@ -15,8 +15,9 @@ public class PathFinding : MonoBehaviour
     {
         Node startNode = myGrid.GetNodeFromWorldPosition(startPos);
         Node endNode = myGrid.GetNodeFromWorldPosition(endPos);
+        startNode.gCost = 0;
 
-        if (!startNode.CanWalk || !endNode.CanWalk)
+        if (!startNode.CanWalk)
         {        
             myGrid.RefreshGrid();
             return;
@@ -26,11 +27,11 @@ public class PathFinding : MonoBehaviour
         List<Node> closeSet = new List<Node>();
 
         openSet.Add(startNode);
-
+        
         while (openSet.Count > 0)
         {
             Node currentNode = openSet[0];
-
+            
             for (int i = 1; i < openSet.Count; i++)
                 if (openSet[i].fCost < currentNode.fCost)
                     currentNode = openSet[i];
@@ -53,7 +54,7 @@ public class PathFinding : MonoBehaviour
                 if (newMovementCost < neighbour.gCost || !openSet.Contains(neighbour))
                 {
                     neighbour.gCost = newMovementCost;
-
+                    
                     neighbour.hCost = myGrid.DiagonalMovement ? GetDistanceInDiagonal(neighbour, endNode) : GetDistance(neighbour, endNode);
 
                     neighbour.parent = currentNode;
@@ -63,43 +64,43 @@ public class PathFinding : MonoBehaviour
                 }
             }
         }
-
         myGrid.RefreshGrid();
     }
 
     void RetracePath(Node startNode, Node endNode)
-    {
+    {      
         List<Node> path = new List<Node>();
 
         Node currentNode = endNode;
-
+      
         while (currentNode != startNode)
-        {
+        {    
             path.Add(currentNode);
             currentNode = currentNode.parent;
         }
+
         path.Reverse();
         path.Add(startNode);
         myGrid.Path = path;
     }
 
 
-    private int GetDistanceInDiagonal(Node a, Node b)
+    float GetDistanceInDiagonal(Node a, Node b)
     {
         int dstX = Mathf.Abs(a.gridX - b.gridX);
         int dstY = Mathf.Abs(a.gridY - b.gridY);
 
         if (dstX > dstY)
-            return 14 * dstY + 10 * (dstX - dstY);
-        return 14 * dstX + 10 * (dstY - dstX);
+            return 1.4f * dstY + 1 * (dstX - dstY);
+        return 1.4f * dstX + 1 * (dstY - dstX);
 
     }
 
-    private int GetDistance(Node a, Node b)
+    float GetDistance(Node a, Node b)
     {
         int dstX = Mathf.Abs(a.gridX - b.gridX);
         int dstY = Mathf.Abs(a.gridY - b.gridY);
 
-        return dstY * 10 + dstX * 10;
+        return dstY * 1 + dstX * 1;
     }
 }

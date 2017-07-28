@@ -12,8 +12,8 @@ public class Node : MonoBehaviour
 
     public Node parent;
 
-    public int gCost;
-    public int hCost;
+    public float gCost;
+    public float hCost;
 
     public void SetProp(bool b, Vector2 v, int x, int y)
     {
@@ -23,7 +23,7 @@ public class Node : MonoBehaviour
         gridY = y;
     }
 
-    public int fCost
+    public float fCost
     {
         get { return gCost + hCost; }
     }

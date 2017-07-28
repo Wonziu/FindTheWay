@@ -15,6 +15,8 @@ public class GridController : MonoBehaviour
     public List<Node> Path;
     public Node[,] Grid;
     public PathFinding MyPathFinding;
+    public GameManager MyGameManager;
+    public GameObject GridParent;
 
     public float NodeDiameter;
 
@@ -27,12 +29,15 @@ public class GridController : MonoBehaviour
     }
 
     void Start()
+    {   
+        GenerateGrid();
+        MyPathFinding.FindPath(StartPos, EndPos);
+    }
+
+    void CountGridSize()
     {
         gridSizeX = Mathf.RoundToInt(GridSize.x / NodeDiameter);
         gridSizeY = Mathf.RoundToInt(GridSize.y / NodeDiameter);
-
-        GenerateGrid();
-        MyPathFinding.FindPath(StartPos, EndPos);
     }
 
     void Update()
@@ -41,22 +46,18 @@ public class GridController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Mouse0))
             SwitchTile();
-
         else if (Input.GetKeyDown(KeyCode.Mouse2))
-        {
-            Node n = GetNodeFromWorldPosition(mousePosition);
-            EndPos = n.transform.position;
-
-            MyPathFinding.FindPath(StartPos, EndPos);
-        }
-
+            SetPathTip(ref EndPos, mousePosition);
         else if (Input.GetKeyDown(KeyCode.Mouse1))
-        {
-            Node n = GetNodeFromWorldPosition(mousePosition);
-            StartPos = n.transform.position;
+            SetPathTip(ref StartPos, mousePosition);
+    }
 
-            MyPathFinding.FindPath(StartPos, EndPos);
-        }
+    public void SetPathTip(ref Vector2 v, Vector2 pos)
+    {
+        Node n = GetNodeFromWorldPosition(pos);
+        v = n.transform.position;
+
+        MyPathFinding.FindPath(StartPos, EndPos);
     }
 
     void SwitchTile()
@@ -81,8 +82,10 @@ public class GridController : MonoBehaviour
     //        }
     //}
 
-    void GenerateGrid()
+    public void GenerateGrid()
     {
+        CountGridSize();
+
         Grid = new Node[gridSizeX, gridSizeY];
 
         for (int x = 0; x < gridSizeX; x++)
@@ -92,7 +95,8 @@ public class GridController : MonoBehaviour
 
                 var node = Instantiate(Tile, worldPoint, Quaternion.identity);
                 node.SetProp(true, worldPoint, x, y);
-
+                
+                node.transform.parent = GridParent.transform;
                 Grid[x, y] = node;
             }
     }
@@ -101,11 +105,10 @@ public class GridController : MonoBehaviour
     {
         int x = Mathf.RoundToInt(worldPosition.x / NodeDiameter);
         int y = Mathf.RoundToInt(worldPosition.y / NodeDiameter);
-
-
-        
+    
         return Grid[x, y];
     }
+
     public List<Node> GetNeighboursInSquare(Node n)
     {
         List<Node> neighbours = new List<Node>();
@@ -164,6 +167,28 @@ public class GridController : MonoBehaviour
             if (Path.Contains(node))
                 node.GetComponent<SpriteRenderer>().sprite = PathTile;
         }
+
+        MyGameManager.ShowPathLength();
+    }
+
+    public float GetPathLength()
+    {
+        return GetNodeFromWorldPosition(EndPos).gCost;
+    }
+
+    public void ResetGrid()
+    {      
+        Path = new List<Node>();
+
+        foreach (Transform node in GridParent.transform)
+        {
+            Destroy(node.gameObject);             
+        }
+
+        GenerateGrid();
+
+        SetPathTip(ref StartPos, new Vector2(0, 0));
+        SetPathTip(ref EndPos, new Vector2(0, 0));
     }
 
     //private void OnDrawGizmos()
